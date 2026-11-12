@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import tempfile
 from dataclasses import replace
@@ -294,16 +293,12 @@ def _sidebar() -> tuple[str, list[Any], list[str], list[str], int, bool]:
         value=10,
         help="Files larger than this limit are skipped.",
     )
-    if st.sidebar.button("Analyze selected files", type="primary", use_container_width=True):
+    if st.sidebar.button("Analyze selected files", type="primary", width="stretch"):
         messages, errors = _analyze_selection(uploads, selected_samples, max_size_mb)
-        if messages:
-            st.session_state.last_analysis_message = (
-                f"Analysis complete: {len(messages)} file(s) analyzed."
-            )
-        if errors:
-            st.session_state.last_analysis_errors = errors
-        else:
-            st.session_state.last_analysis_errors = []
+        st.session_state.last_analysis_message = (
+            f"Analysis complete: {len(messages)} file(s) analyzed." if messages else ""
+        )
+        st.session_state.last_analysis_errors = errors
 
     severity_filter = st.sidebar.multiselect(
         "Filter risk severity",
@@ -316,12 +311,12 @@ def _sidebar() -> tuple[str, list[Any], list[str], list[str], int, bool]:
             "A static SQL review aid for migration changes. It does not connect to or "
             "execute statements against a database."
         )
-    if st.sidebar.button("Clear analyzed results", use_container_width=True):
+    if st.sidebar.button("Clear analyzed results", width="stretch"):
         st.session_state.analysis_batches = {}
         st.session_state.last_analysis_message = ""
         st.session_state.last_analysis_errors = []
         st.rerun()
-    return page, uploads, selected_samples, severity_filter, max_size_mb, False
+    return page, uploads, selected_samples, severity_filter, max_size_mb
 
 
 def _render_header() -> None:
@@ -387,7 +382,7 @@ def _render_overview(report: AnalysisReport) -> None:
             showlegend=True,
             legend={"orientation": "h", "y": -0.08},
         )
-        st.plotly_chart(fig, use_container_width=True, key="risk_donut")
+        st.plotly_chart(fig, width="stretch", key="risk_donut")
     with right:
         st.markdown(
             '<div class="section-kicker">Severity distribution</div>', unsafe_allow_html=True
@@ -409,7 +404,7 @@ def _render_overview(report: AnalysisReport) -> None:
             yaxis_title="Findings",
             xaxis_title="Severity",
         )
-        st.plotly_chart(fig, use_container_width=True, key="severity_bar")
+        st.plotly_chart(fig, width="stretch", key="severity_bar")
 
     findings = build_findings_dataframe(report)
     left, right = st.columns(2)
@@ -436,7 +431,7 @@ def _render_overview(report: AnalysisReport) -> None:
                 height=330,
                 xaxis_title="Findings",
             )
-            st.plotly_chart(fig, use_container_width=True, key="file_findings")
+            st.plotly_chart(fig, width="stretch", key="file_findings")
     with right:
         st.markdown(
             '<div class="section-kicker">Findings by detection rule</div>',
@@ -463,7 +458,7 @@ def _render_overview(report: AnalysisReport) -> None:
                 height=330,
                 xaxis_title="Findings",
             )
-            st.plotly_chart(fig, use_container_width=True, key="rule_findings")
+            st.plotly_chart(fig, width="stretch", key="rule_findings")
 
 
 def _filtered_findings(report: AnalysisReport, selected_levels: list[str]) -> pd.DataFrame:
@@ -511,7 +506,7 @@ def _render_findings(report: AnalysisReport, selected_levels: list[str]) -> None
         findings = findings.sort_values(sort_column, ascending=not descending, kind="stable")
         st.dataframe(
             _styled_findings(findings),
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
             height=min(600, max(180, 42 * (len(findings) + 1))),
         )
@@ -547,7 +542,7 @@ def _render_analysis(
         size = f"{sample_path.stat().st_size / 1024:.1f} KB" if sample_path.is_file() else "Missing"
         selected_rows.append({"Source": sample_name, "Type": "Sample", "Size": size})
     if selected_rows:
-        st.dataframe(pd.DataFrame(selected_rows), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(selected_rows), width="stretch", hide_index=True)
     else:
         st.info("Choose SQL files in the sidebar, or select a sample migration.")
 
@@ -566,7 +561,7 @@ def _render_analysis(
     if findings.empty:
         st.info("No findings to show. Start an analysis from the sidebar or above.")
     else:
-        st.dataframe(_styled_findings(findings), use_container_width=True, hide_index=True)
+        st.dataframe(_styled_findings(findings), width="stretch", hide_index=True)
 
 
 def _render_reports(report: AnalysisReport) -> None:
@@ -591,21 +586,21 @@ def _render_reports(report: AnalysisReport) -> None:
         data=json_data,
         file_name="db_migration_risk_report.json",
         mime="application/json",
-        use_container_width=True,
+        width="stretch",
     )
     columns[1].download_button(
         "Download CSV",
         data=csv_data,
         file_name="db_migration_risk_report.csv",
         mime="text/csv",
-        use_container_width=True,
+        width="stretch",
     )
     columns[2].download_button(
         "Download TXT",
         data=text_data,
         file_name="db_migration_risk_report.txt",
         mime="text/plain",
-        use_container_width=True,
+        width="stretch",
     )
     with st.expander("Preview JSON report"):
         st.code(json.dumps(json.loads(json_data), indent=2), language="json")
@@ -650,7 +645,7 @@ def main() -> None:
     if "last_analysis_errors" not in st.session_state:
         st.session_state.last_analysis_errors = []
 
-    page, uploads, selected_samples, severity_filter, max_size_mb, _ = _sidebar()
+    page, uploads, selected_samples, severity_filter, max_size_mb = _sidebar()
     _render_header()
     report = aggregate_reports(st.session_state.analysis_batches)
 

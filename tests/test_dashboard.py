@@ -2,9 +2,11 @@ import csv
 import io
 import json
 import unittest
+from pathlib import Path
 
 from analyzer import AnalysisReport, MigrationAnalyzer
 from dashboard import aggregate_reports, build_csv_report, build_findings_dataframe
+from streamlit.testing.v1 import AppTest
 
 
 class DashboardReportTests(unittest.TestCase):
@@ -54,6 +56,23 @@ class DashboardReportTests(unittest.TestCase):
         payload = json.loads(format_json(self.report))
         self.assertEqual(payload["summary"]["total_issues"], 2)
         self.assertEqual(payload["issues"][0]["file"], "migration.sql")
+
+    def test_dashboard_analyzes_sample_and_renders_all_download_controls(self):
+        dashboard_path = Path(__file__).resolve().parents[1] / "dashboard.py"
+        app = AppTest.from_file(str(dashboard_path)).run()
+        app.multiselect[0].set_value(["risky_migration.sql"]).run()
+        app.button[0].click().run()
+
+        self.assertEqual(len(app.exception), 0)
+        sample_report = app.session_state["analysis_batches"]["sample:risky_migration.sql"]
+        self.assertEqual(len(sample_report.issues), 8)
+
+        app.radio[0].set_value("Reports").run()
+        self.assertEqual(
+            {button.label for button in app.get("download_button")},
+            {"Download JSON", "Download CSV", "Download TXT"},
+        )
+        self.assertEqual(len(app.exception), 0)
 
 
 if __name__ == "__main__":

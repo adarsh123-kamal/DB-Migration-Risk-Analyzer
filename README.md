@@ -104,6 +104,17 @@ py -3.12 -m streamlit run dashboard.py
 
 Streamlit starts a local server and opens the dashboard in your browser. The sidebar provides page navigation, multi-file `.sql` upload, sample selection, a per-file size limit, severity filtering, and an Analyze action. On **Migration Analysis**, select uploaded and/or sample files, then press **Analyze selected files**. Results are retained in the current Streamlit session as you navigate; analyzing a source again updates that source's result, and **Clear analyzed results** clears the session.
 
+### Deploy on Streamlit Community Cloud
+
+The repository is arranged for Community Cloud: `dashboard.py`, `requirements.txt`, `.streamlit/config.toml`, and `test_files/` are at the repository root. In Streamlit Community Cloud, create or redeploy the app with:
+
+- Repository: `adarsh123-kamal/DB-Migration-Risk-Analyzer`
+- Branch: `main`
+- Main file path: `dashboard.py`
+- Python version: `3.12`
+
+Keep `server.headless` unset in `.streamlit/config.toml`. Streamlit automatically selects headless mode on Linux hosts without a display and opens a browser by default on a local Windows run. The app does not set a fixed server port; Community Cloud can use its expected port. After pushing a config change, use **Reboot app** in Community Cloud and inspect the startup traceback if the health check still fails.
+
 The **Overview** page shows file/finding metrics and interactive severity, file, and rule charts. **Risk Findings** supports severity/rule filters, text search, and sorting. On **Reports**, download the current combined report as JSON, CSV, or TXT. JSON is generated with the existing reporter; CSV contains a summary record followed by individual finding records.
 
 Uploads are limited to `.sql` files and the configured maximum size (10 MB by default, adjustable in the sidebar up to 25 MB). The upload is written to a temporary directory for the existing path-based analyzer and removed after analysis. An empty upload is reported as an error. The application does not execute uploaded or sample SQL.
@@ -181,7 +192,7 @@ The tests cover all eight rules, safe statements, comments and literals, line nu
 
 ## CI/CD
 
-`.github/workflows/ci.yml` runs for pushes and pull requests. It sets up Python 3.12, installs the (empty of third-party packages) requirements file, runs unit tests, analyzes the safe sample, and verifies that the risky sample returns exit code 1 with `--fail-on high`. The threshold check is expected to return 1; the workflow itself succeeds when that behavior is observed.
+`.github/workflows/ci.yml` runs for pushes and pull requests. It sets up Python 3.12, installs the dashboard dependencies from `requirements.txt`, smoke-tests the Streamlit server on an Ubuntu runner, runs unit tests, analyzes the safe sample, and verifies that the risky sample returns exit code 1 with `--fail-on high`. The threshold check is expected to return 1; the workflow itself succeeds when that behavior is observed.
 
 ## Limitations
 
